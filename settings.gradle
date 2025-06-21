@@ -1,0 +1,11 @@
+rootProject.name = 'lab7'
+include 'JocModel'
+include 'JocPersistence'
+include 'JocPersistence:JocServices'
+findProject(':JocPersistence:JocServices')?.name = 'JocServices'
+include 'JocServices'
+include 'JocNetworking'
+include 'JocServer'
+include 'JocClient'
+include 'RestServices'
+

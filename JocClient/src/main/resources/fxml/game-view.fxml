@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="org.example.gui.GameController"
+            prefWidth="600" prefHeight="400">
+
+    <!-- Tabla de joc -->
+    <center>
+        <GridPane fx:id="boardGrid" hgap="5" vgap="5">
+            <padding>
+                <Insets top="10" right="10" bottom="10" left="10"/>
+            </padding>
+            <!-- Butoanele se vor adăuga din controller -->
+        </GridPane>
+    </center>
+
+    <!-- Clasament -->
+    <right>
+        <VBox spacing="5">
+            <padding>
+                <Insets top="10" right="10" bottom="10" left="10"/>
+            </padding>
+            <Label text="Leaderboard" style="-fx-font-weight: bold;"/>
+            <ListView fx:id="leaderboardList" prefWidth="200" />
+        </VBox>
+    </right>
+
+    <!-- Bara de jos cu butoane -->
+    <bottom>
+        <HBox spacing="10" alignment="CENTER">
+            <padding>
+                <Insets top="10" right="10" bottom="10" left="10"/>
+            </padding>
+            <Button text="New Game" onAction="#handleNewGameButton" />
+            <Button text="Logout"   onAction="#handleLogoutButton" />
+        </HBox>
+    </bottom>
+</BorderPane>
