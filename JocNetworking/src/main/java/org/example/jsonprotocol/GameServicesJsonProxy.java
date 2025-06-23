@@ -13,17 +13,13 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class GameServicesJsonProxy implements IGameServices {
     private String host;
     private int port;
-
     private IGameObserver clientObserver;
-
     private BufferedReader input;
     private PrintWriter output;
     private Gson gsonFormatter;
     private Socket connection;
-
     private BlockingQueue<Response> qresponses;
     private volatile boolean finished;
-
     private static final Logger logger = LogManager.getLogger(GameServicesJsonProxy.class);
 
     public GameServicesJsonProxy(String host, int port) {
@@ -33,22 +29,25 @@ public class GameServicesJsonProxy implements IGameServices {
     }
 
     @Override
-    public void login(String playerAlias, IGameObserver client) throws GameException {
+    public PlayerDTO login(String playerAlias, IGameObserver client) throws GameException {
         initializeConnection();
         Request req = JsonProtocolUtils.createLoginRequest(playerAlias);
         sendRequest(req);
         Response response = readResponse();
         if (response.getType() == ResponseType.OK) {
             this.clientObserver = client;
+            // Return the logged-in player's info (ID and alias) to the client
+            return response.getPlayer();
         } else if (response.getType() == ResponseType.ERROR) {
             closeConnection();
             throw new GameException(response.getErrorMessage());
         }
+        return null;  // should not reach here
     }
 
     @Override
-    public void startGame() throws GameException {
-        Request req = JsonProtocolUtils.createStartGameRequest();
+    public void startGame(Long playerId) throws GameException {
+        Request req = JsonProtocolUtils.createStartGameRequest(new PlayerDTO(playerId, null));
         sendRequest(req);
         Response response = readResponse();
         if (response.getType() == ResponseType.ERROR) {
@@ -57,15 +56,15 @@ public class GameServicesJsonProxy implements IGameServices {
     }
 
     @Override
-    public GameDTO makeGuess(int row, int col) throws GameException {
-        Request req = JsonProtocolUtils.createGuessRequest(row, col);
+    public GameDTO makeGuess(Long playerId, int row, int col) throws GameException {
+        Request req = JsonProtocolUtils.createGuessRequest(new PlayerDTO(playerId, null), row, col);
         sendRequest(req);
         Response response = readResponse();
         if (response.getType() == ResponseType.ERROR) {
             throw new GameException(response.getErrorMessage());
         }
-        GameDTO gameResult = response.getGame();
-        return gameResult; // poate fi null dacă jocul continuă
+        // May be null if game continues, or non-null if game ended
+        return response.getGame();
     }
 
     @Override
@@ -80,11 +79,11 @@ public class GameServicesJsonProxy implements IGameServices {
     }
 
     @Override
-    public void logout(Player player, IGameObserver client) throws GameException {
-        Request req = JsonProtocolUtils.createLogoutRequest(new PlayerDTO(player.getId(), player.getName()));
+    public void logout(Long playerId, IGameObserver client) throws GameException {
+        Request req = JsonProtocolUtils.createLogoutRequest(new PlayerDTO(playerId, null));
         sendRequest(req);
         Response response = readResponse();
-        closeConnection();
+        closeConnection();  // close socket on logout
         if (response.getType() == ResponseType.ERROR) {
             throw new GameException(response.getErrorMessage());
         }

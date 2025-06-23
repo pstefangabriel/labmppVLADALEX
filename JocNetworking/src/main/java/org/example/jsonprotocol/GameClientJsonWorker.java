@@ -15,16 +15,13 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class GameClientJsonWorker implements Runnable, IGameObserver {
     private static final Logger logger = LogManager.getLogger(GameClientJsonWorker.class);
-    private IGameServices server;      // referință la logica de joc de pe server
+    private IGameServices server;
     private Socket connection;
     private BufferedReader input;
     private PrintWriter output;
     private Gson gson = new Gson();
     private volatile boolean connected;
-
-    private BlockingQueue<Response> responseQueue;  // coadă internă pentru răspunsurile sincronizate
-
-    private Player currentPlayer;  // jucătorul asociat acestui client (după login)
+    private BlockingQueue<Response> responseQueue;
 
     public GameClientJsonWorker(IGameServices server, Socket connection) {
         this.server = server;
@@ -41,21 +38,20 @@ public class GameClientJsonWorker implements Runnable, IGameObserver {
 
     @Override
     public void run() {
-        // Buclează cât timp conexiunea este activă și primește mesaje de la client
         try {
             while(connected) {
                 String requestJson = input.readLine();
                 if (requestJson == null) {
-                    // stream închis - client deconectat
+                    // client disconnected
                     logger.info("Client disconnected.");
                     connected = false;
                     break;
                 }
                 logger.debug("Request received: {}", requestJson);
                 Request request = gson.fromJson(requestJson, Request.class);
-                Response response = handleRequest(request);
-                if (response != null) {
-                    String responseJson = gson.toJson(response);
+                Response resp = handleRequest(request);
+                if (resp != null) {
+                    String responseJson = gson.toJson(resp);
                     logger.debug("Sending response: {}", responseJson);
                     output.println(responseJson);
                 }
@@ -73,26 +69,26 @@ public class GameClientJsonWorker implements Runnable, IGameObserver {
             switch(request.getType()) {
                 case LOGIN -> {
                     String alias = request.getPlayer().getName();
-                    //String pass = request.getPassword();
-                    // Apelează logica de login din serviciu
-                    server.login(alias, this);
-                    // După login reușit, stocăm entitatea Player curentă
-                    currentPlayer = new Player(alias);
+                    // Perform login and retrieve Player info with ID
+                    PlayerDTO playerDto = server.login(alias, this);
                     resp = JsonProtocolUtils.createOkResponse();
+                    resp.setPlayer(playerDto);  // include player ID and alias in response
                 }
                 case START_GAME -> {
-                    server.startGame();
+                    Long playerId = request.getPlayer().getId();
+                    server.startGame(playerId);
                     resp = JsonProtocolUtils.createOkResponse();
                 }
                 case GUESS -> {
+                    Long playerId = request.getPlayer().getId();
                     int row = request.getRow();
                     int col = request.getCol();
-                    GameDTO resultGame = server.makeGuess(row, col);
+                    GameDTO resultGame = server.makeGuess(playerId, row, col);
                     if (resultGame != null) {
-                        // Joc câștigat – trimite înapoi detaliile jocului finalizat (punctaj, durată, rank)
+                        // Game won – send final game results (points, duration, rank)
                         resp = JsonProtocolUtils.createGameFinishedResponse(resultGame);
                     } else {
-                        // Mutare sigură, jocul continuă – răspuns OK fără date
+                        // Safe move, game continues – just send OK
                         resp = JsonProtocolUtils.createOkResponse();
                     }
                 }
@@ -101,13 +97,14 @@ public class GameClientJsonWorker implements Runnable, IGameObserver {
                     resp = JsonProtocolUtils.createLeaderboardResponse(games);
                 }
                 case LOGOUT -> {
-                    server.logout(currentPlayer, this);
+                    Long playerId = request.getPlayer().getId();
+                    server.logout(playerId, this);
                     connected = false;
                     resp = JsonProtocolUtils.createOkResponse();
                 }
             }
         } catch(GameException e) {
-            // În caz de excepție, trimitem un răspuns de eroare cu mesajul
+            // On exception, send an ERROR response with the message
             resp = JsonProtocolUtils.createErrorResponse(e.getMessage());
         }
         return resp;
@@ -115,11 +112,9 @@ public class GameClientJsonWorker implements Runnable, IGameObserver {
 
     @Override
     public void scoreboardUpdated() throws GameException {
-        // Metoda apelată de server când trebuie notificat clientul despre actualizarea clasamentului
+        // Notify client about updated leaderboard (no change needed here)
         try {
-            // Construim un răspuns special de notificare
             Response update = JsonProtocolUtils.createLeaderboardUpdateResponse();
-            // Trimitem direct răspunsul pe fluxul către client (fără a aștepta cerere)
             String updateJson = gson.toJson(update);
             logger.debug("Sending update notification to client: {}", updateJson);
             output.println(updateJson);

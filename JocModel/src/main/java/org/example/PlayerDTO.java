@@ -2,7 +2,7 @@ package org.example;
 
 import java.io.Serializable;
 
-// DTO pentru entitatea Player - folosit în comunicarea JSON (nu conține câmpuri sensibile)
+// DTO for Player entity – used in JSON communication (contains no sensitive fields)
 public class PlayerDTO implements Serializable {
     private Long id;
     private String name;

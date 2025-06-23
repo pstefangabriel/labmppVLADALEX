@@ -8,11 +8,11 @@ import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 import org.example.IGameServices;
 import org.example.GameException;
-import org.example.Player;
+import org.example.PlayerDTO;
 
 public class SignInController {
     @FXML private TextField aliasField;
-    @FXML private TextField passwordField;
+    @FXML private TextField passwordField;  // (password not used in this context)
 
     private IGameServices server;
     private Stage primaryStage;
@@ -30,16 +30,15 @@ public class SignInController {
             return;
         }
         try {
-            // Autentificare la server (apel login)
-            //server.login(alias, null);
-            // Login reușit – trecem la scena principală de joc
+            // Authenticate with server (login) using the provided alias
+            //PlayerDTO playerData = server.login(alias, null);  // pass null as no UI observer for login
+            // If login succeeds, switch to the main game scene
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/game-view.fxml"));
-            Parent gameLayout = loader.load();  // FIX: Use Parent or BorderPane, NOT AnchorPane
+            Parent gameLayout = loader.load();
             GameController gameController = loader.getController();
-            // Setează serviciul și jucătorul curent în controllerul de joc
-            server.login(alias, gameController);
-            gameController.setService(server, primaryStage, new Player(alias));
-
+            PlayerDTO playerData = server.login(alias, gameController);
+            // Set the service and current player info (including ID) in the game controller
+            gameController.setService(server, primaryStage, playerData);
             primaryStage.setTitle("Game - Player: " + alias);
             primaryStage.setScene(new Scene(gameLayout));
             primaryStage.show();

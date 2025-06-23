@@ -4,7 +4,7 @@ import org.example.GameDTO;
 import org.example.PlayerDTO;
 
 public class JsonProtocolUtils {
-    // Metode de creare a obiectelor Request:
+    // Request creation methods:
     public static Request createLoginRequest(String alias) {
         Request req = new Request();
         req.setType(RequestType.LOGIN);
@@ -16,9 +16,23 @@ public class JsonProtocolUtils {
         req.setType(RequestType.START_GAME);
         return req;
     }
+    public static Request createStartGameRequest(PlayerDTO player) {
+        Request req = new Request();
+        req.setType(RequestType.START_GAME);
+        req.setPlayer(player);
+        return req;
+    }
     public static Request createGuessRequest(int row, int col) {
         Request req = new Request();
         req.setType(RequestType.GUESS);
+        req.setRow(row);
+        req.setCol(col);
+        return req;
+    }
+    public static Request createGuessRequest(PlayerDTO player, int row, int col) {
+        Request req = new Request();
+        req.setType(RequestType.GUESS);
+        req.setPlayer(player);
         req.setRow(row);
         req.setCol(col);
         return req;
@@ -35,7 +49,7 @@ public class JsonProtocolUtils {
         return req;
     }
 
-    // Metode de creare a obiectelor Response:
+    // Response creation methods:
     public static Response createOkResponse() {
         Response resp = new Response();
         resp.setType(ResponseType.OK);

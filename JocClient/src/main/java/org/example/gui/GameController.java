@@ -17,27 +17,23 @@ public class GameController implements IGameObserver {
 
     private IGameServices server;
     private Stage primaryStage;
-    private Player currentPlayer;
+    private PlayerDTO currentPlayer;  // store current player's ID and alias
 
-    // Matricea butoanelor pentru tabla de joc (4x4)
+    // 4x4 grid of buttons for the game board
     private Button[][] boardButtons = new Button[4][4];
-    private int currentRowIndex = 0;  // indexul (0-based) al rândului curent așteptat
+    private int currentRowIndex = 0;  // current row (0-based) that the player is attempting
 
-    public void setService(IGameServices service, Stage stage, Player player) throws GameException {
+    public void setService(IGameServices service, Stage stage, PlayerDTO player) throws GameException {
         this.server = service;
         this.primaryStage = stage;
         this.currentPlayer = player;
-        // Înregistrează acest controller ca observer pentru update-uri de la server
-        // (Serverul a primit this.observer prin login, deci notificările ne vor parveni)
-        // Inițializează tabla și clasificarea inițială
+        // Initialize board and leaderboard, then start a new game for this player
         initializeBoard();
         refreshLeaderboard();
-        // Pornește un nou joc automat după login
-        server.startGame();
+        server.startGame(currentPlayer.getId());
     }
 
     private void initializeBoard() {
-        // Construiește dinamically grid-ul de butoane 4x4 și le atașează evenimente
         boardGrid.getChildren().clear();
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
@@ -70,37 +66,39 @@ public class GameController implements IGameObserver {
     }
 
     private void handleCellClick(int rowIndex, int colIndex) {
-        // Ignoră click-urile pe rânduri care nu sunt active (utilizatorul trebuie să aleagă în ordine)
+        // Ignore clicks on rows that are not the current active row
         if (rowIndex != currentRowIndex) {
             return;
         }
         try {
-            GameDTO result = server.makeGuess(rowIndex+1, colIndex+1);
-            // Mutarea a fost procesată cu succes de server
+            // Attempt the chosen cell (rowIndex+1, colIndex+1 because server expects 1-4)
+            GameDTO result = server.makeGuess(currentPlayer.getId(), rowIndex+1, colIndex+1);
+            // Move was processed successfully by server
             if (result == null) {
-                // Mutare sigură, dar jocul nu s-a terminat încă
-                boardButtons[rowIndex][colIndex].setStyle("-fx-background-color: #7fff7f;");  // verde (safe)
-                // Dezactivează toate butoanele de pe rândul curent (să nu mai poată fi apasate din nou)
+                // Safe move, game continues
+                boardButtons[rowIndex][colIndex].setStyle("-fx-background-color: #7fff7f;");
+                // Disable all buttons in this row (prevent repeated clicks on the same row)
                 for (int c = 0; c < 4; c++) {
                     boardButtons[rowIndex][c].setDisable(true);
                 }
-                // trece la următorul rând
+                // advance to next row
                 currentRowIndex++;
             } else {
-                // result nu e null -> joc câștigat
+                // result not null -> game won
                 boardButtons[rowIndex][colIndex].setStyle("-fx-background-color: #7fff7f;");
-                for (int c = 0; c < 4; c++) boardButtons[rowIndex][c].setDisable(true);
-                // Afișează mesaj de felicitare cu scor și clasament
+                for (int c = 0; c < 4; c++) {
+                    boardButtons[rowIndex][c].setDisable(true);
+                }
+                // Show congratulations with score and rank
                 String msg = "Felicitări! Ai traversat toate cele 4 rânduri.\n" +
                         "Scor obținut: " + result.getPoints() + " puncte.\n" +
                         "Loc în clasament: " + result.getRank() + ".";
                 MessageAlert.showInfoMessage(null, msg);
-                // (Clasamentul se va actualiza prin notificarea scoreboardUpdated, apelată deja de server)
+                // Leaderboard will update via scoreboardUpdated notification from server
             }
         } catch(GameException e) {
-            // Eroare = a căzut în groapă sau altă problemă
-            // Dacă e mesaj de pierdere, evidențiem poziția respectivă ca fiind groapă (roșu)
-            boardButtons[rowIndex][colIndex].setStyle("-fx-background-color: #ff4c4c;");  // roșu pentru groapă
+            // Error means the player fell in a hole or other issue
+            boardButtons[rowIndex][colIndex].setStyle("-fx-background-color: #ff4c4c;");  // red for hole
             for (int c = 0; c < 4; c++) boardButtons[rowIndex][c].setDisable(true);
             MessageAlert.showErrorMessage(null, e.getMessage());
         }
@@ -108,18 +106,16 @@ public class GameController implements IGameObserver {
 
     @Override
     public void scoreboardUpdated() throws GameException {
-        // Serverul a notificat că s-a adăugat un joc nou în clasament; actualizăm lista
-        Platform.runLater(() -> {
-            refreshLeaderboard();
-        });
+        // Server notified that a new game was added to leaderboard; refresh the list on the UI thread
+        Platform.runLater(this::refreshLeaderboard);
     }
 
     @FXML
     private void handleNewGameButton() {
         try {
-            // Resetează tabla și începe un joc nou
+            // Reset board and start a new game for the current player
             initializeBoard();
-            server.startGame();
+            server.startGame(currentPlayer.getId());
         } catch(GameException e) {
             MessageAlert.showErrorMessage(null, "Eroare la pornirea unui nou joc: " + e.getMessage());
         }
@@ -128,9 +124,9 @@ public class GameController implements IGameObserver {
     @FXML
     private void handleLogoutButton() {
         try {
-            server.logout(currentPlayer, this);
+            server.logout(currentPlayer.getId(), this);
             MessageAlert.showInfoMessage(null, "Te-ai deconectat.");
-            // Revenim la fereastra de login
+            // Return to login window
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/sign-in-view.fxml"));
             AnchorPane loginLayout = loader.load();
             SignInController signInCtrl = loader.getController();

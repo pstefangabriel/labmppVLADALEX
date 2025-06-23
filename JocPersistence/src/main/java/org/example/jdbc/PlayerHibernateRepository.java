@@ -15,16 +15,23 @@ public class PlayerHibernateRepository implements PlayerRepo {
             Query<Player> q = session.createQuery(
                     "from Player p where p.name = :name", Player.class);
             q.setParameter("name", name);
-            return q.uniqueResult();  // poate întoarce null dacă nu există
+            return q.uniqueResult();
         }
     }
 
     @Override
     public Player save(Player player) {
-        // Salvează (sau actualizează) un jucător în baza de date
+        // Save (or update) a player in the database
         HibernateUtils.inTransaction(session -> {
             session.persist(player);
         });
         return player;
+    }
+
+    @Override
+    public Player find(Long id) {
+        try (Session session = sf.openSession()) {
+            return session.find(Player.class, id);
+        }
     }
 }
