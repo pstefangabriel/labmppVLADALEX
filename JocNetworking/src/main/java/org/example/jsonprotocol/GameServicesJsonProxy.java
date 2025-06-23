@@ -78,16 +78,16 @@ public class GameServicesJsonProxy implements IGameServices {
         return response.getGames();
     }
 
-    @Override
-    public void logout(Long playerId, IGameObserver client) throws GameException {
-        Request req = JsonProtocolUtils.createLogoutRequest(new PlayerDTO(playerId, null));
-        sendRequest(req);
-        Response response = readResponse();
-        closeConnection();  // close socket on logout
-        if (response.getType() == ResponseType.ERROR) {
-            throw new GameException(response.getErrorMessage());
-        }
-    }
+//    @Override
+//    public void logout(Long playerId, IGameObserver client) throws GameException {
+//        Request req = JsonProtocolUtils.createLogoutRequest(new PlayerDTO(playerId, null));
+//        sendRequest(req);
+//        Response response = readResponse();
+//        closeConnection();  // close socket on logout
+//        if (response.getType() == ResponseType.ERROR) {
+//            throw new GameException(response.getErrorMessage());
+//        }
+//    }
 
     // ========================= Helpers =============================
 

@@ -5,5 +5,5 @@ public interface IGameServices {
     void startGame(Long playerId) throws GameException;
     GameDTO makeGuess(Long playerId, int row, int col) throws GameException;
     GameDTO[] getLeaderboard() throws GameException;
-    void logout(Long playerId, IGameObserver client) throws GameException;
+    //void logout(Long playerId, IGameObserver client) throws GameException;
 }

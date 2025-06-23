@@ -96,12 +96,12 @@ public class GameClientJsonWorker implements Runnable, IGameObserver {
                     GameDTO[] games = server.getLeaderboard();
                     resp = JsonProtocolUtils.createLeaderboardResponse(games);
                 }
-                case LOGOUT -> {
-                    Long playerId = request.getPlayer().getId();
-                    server.logout(playerId, this);
-                    connected = false;
-                    resp = JsonProtocolUtils.createOkResponse();
-                }
+//                case LOGOUT -> {
+//                    Long playerId = request.getPlayer().getId();
+//                    server.logout(playerId, this);
+//                    connected = false;
+//                    resp = JsonProtocolUtils.createOkResponse();
+//                }
             }
         } catch(GameException e) {
             // On exception, send an ERROR response with the message

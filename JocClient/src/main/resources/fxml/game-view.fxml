@@ -9,17 +9,17 @@
             fx:controller="org.example.gui.GameController"
             prefWidth="600" prefHeight="400">
 
-    <!-- Tabla de joc -->
+    <!-- Game Board in center -->
     <center>
         <GridPane fx:id="boardGrid" hgap="5" vgap="5">
             <padding>
                 <Insets top="10" right="10" bottom="10" left="10"/>
             </padding>
-            <!-- Butoanele se vor adăuga din controller -->
+            <!-- Buttons are added in controller -->
         </GridPane>
     </center>
 
-    <!-- Clasament -->
+    <!-- Leaderboard at right -->
     <right>
         <VBox spacing="5">
             <padding>
@@ -29,15 +29,4 @@
             <ListView fx:id="leaderboardList" prefWidth="200" />
         </VBox>
     </right>
-
-    <!-- Bara de jos cu butoane -->
-    <bottom>
-        <HBox spacing="10" alignment="CENTER">
-            <padding>
-                <Insets top="10" right="10" bottom="10" left="10"/>
-            </padding>
-            <Button text="New Game" onAction="#handleNewGameButton" />
-            <Button text="Logout"   onAction="#handleLogoutButton" />
-        </HBox>
-    </bottom>
 </BorderPane>

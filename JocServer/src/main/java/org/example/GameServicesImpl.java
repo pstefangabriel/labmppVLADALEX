@@ -9,7 +9,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
 public class GameServicesImpl implements IGameServices {
     private static final Logger logger = LogManager.getLogger(GameServicesImpl.class);
@@ -23,22 +22,6 @@ public class GameServicesImpl implements IGameServices {
     private final Map<Long, GameSession> activeGames = new ConcurrentHashMap<>();
 
     private final int defaultThreadsNo = 3;
-
-    // Inner class for a game session
-//    private static class GameSession {
-//        boolean[][] holes;
-//        int nextRow;
-//        int currentPoints;
-//        Instant startTime;
-//        List<Move> moves;
-//        GameSession(boolean[][] holes) {
-//            this.holes = holes;
-//            this.nextRow = 1;
-//            this.currentPoints = 0;
-//            this.startTime = Instant.now();
-//            this.moves = new ArrayList<>();
-//        }
-//    }
 
     public GameServicesImpl(PlayerRepo playerRepo, GameRepo gameRepo) {
         this.playerRepo = playerRepo;
@@ -61,12 +44,14 @@ public class GameServicesImpl implements IGameServices {
         }
         loggedClients.put(player.getId(), client);
         logger.info("Player {} logged in.", playerAlias);
-        // Return player data (ID and alias) so client knows its unique ID
         return new PlayerDTO(player.getId(), playerAlias);
     }
 
     @Override
     public synchronized void startGame(Long playerId) throws GameException {
+        if (activeGames.containsKey(playerId)) {
+            throw new GameException("You have already started a game! New games are not allowed until the current game is finished.");
+        }
         boolean[][] holes = generateHoles();
         GameSession session = new GameSession(holes);
         activeGames.put(playerId, session);
@@ -124,7 +109,6 @@ public class GameServicesImpl implements IGameServices {
                 activeGames.remove(playerId);
                 logger.info("Player ID {} WON the game! Points={}, Duration={}s, Rank={}",
                         playerId, finalPoints, duration, rank);
-                // Return final game stats (player alias, points, duration, rank)
                 return new GameDTO(game.getId(), player.getName(), finalPoints, duration, (int) rank);
             } else {
                 // Continue to next row
@@ -142,12 +126,11 @@ public class GameServicesImpl implements IGameServices {
                 .toArray(GameDTO[]::new);
     }
 
-    @Override
-    public synchronized void logout(Long playerId, IGameObserver client) throws GameException {
-        loggedClients.remove(playerId);
-        activeGames.remove(playerId);
-        logger.info("Player with ID {} logged out.", playerId);
-    }
+//    @Override
+//    public synchronized void logout(Long playerId, IGameObserver client) throws GameException {
+//        // DO NOT allow logout
+//        throw new GameException("Logout is not allowed in this application.");
+//    }
 
     // --------- Helper methods ----------
     private boolean[][] generateHoles() {
